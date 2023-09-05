@@ -16,6 +16,8 @@ movie_titles = movies["title"].tolist()
 movie_ids = movies["movie_id"].tolist()
 movie_id_to_title = dict(zip(movie_ids, movie_titles))
 movie_title_to_id = dict(zip(movie_titles, movie_ids))
+movie_id_to_genre = dict(zip(movie_ids, movies["genre"]))
+movie_id_to_tag = dict(zip(movie_ids, movies["tag"]))
 
 st.markdown("## 1本の映画に対して似ている映画を表示する")
 selected_movie = st.selectbox("映画を選んでください", movie_titles)
@@ -25,9 +27,12 @@ st.write(f"あなたが選択した映画は{selected_movie}(id={selected_movie_
 # 似ている映画を表示
 st.markdown(f"### {selected_movie}に似ている映画")
 results = []
-for movie_id, score in model.wv.most_similar(selected_movie_id):
+for movie_id, score in model.wv.most_similar(selected_movie_id, topn=3):
     title = movie_id_to_title[movie_id]
-    results.append({"movie_id":movie_id, "title": title, "score": score})
+    genre = movie_id_to_genre[movie_id]
+    tag = movie_id_to_tag[movie_id]
+    results.append({"movie_id": movie_id, "score": score, "title": title,
+                   "genre": eval(genre), "tag": eval(tag)})
 results = pd.DataFrame(results)
 st.write(results)
 
@@ -43,6 +48,7 @@ if len(selected_movies) > 0:
     recommend_results = []
     for movie_id, score in model.wv.most_similar(user_vector):
         title = movie_id_to_title[movie_id]
-        recommend_results.append({"movie_id":movie_id, "title": title, "score": score})
+        recommend_results.append(
+            {"movie_id": movie_id, "title": title, "score": score})
     recommend_results = pd.DataFrame(recommend_results)
     st.write(recommend_results)
