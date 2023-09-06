@@ -30,9 +30,8 @@ results = []
 for movie_id, score in model.wv.most_similar(selected_movie_id, topn=3):
     title = movie_id_to_title[movie_id]
     genre = movie_id_to_genre[movie_id]
-    tag = movie_id_to_tag[movie_id]
     results.append({"movie_id": movie_id, "score": score, "title": title,
-                   "genre": eval(genre), "tag": eval(tag)})
+                   "genre": eval(genre)})
 results = pd.DataFrame(results)
 st.write(results)
 
@@ -41,6 +40,17 @@ st.markdown("## 複数の映画を選んでおすすめの映画を表示する"
 
 selected_movies = st.multiselect("映画を複数選んでください", movie_titles)
 selected_movie_ids = [movie_title_to_id[movie] for movie in selected_movies]
+# moviesから重複なしでジャンルを取得
+# まずは全ての映画のジャンルをevalでリスト型に変換し、一つの変数に格納
+genres = []
+for genre in movies["genre"].tolist():
+    genres.extend(eval(genre))
+# 重複を削除
+genres = list(set(genres))
+# ABC順に並び替え
+genres.sort()
+
+selected_genres = st.multiselect("ジャンルで絞り込み：", genres)
 vectors = [model.wv.get_vector(movie_id) for movie_id in selected_movie_ids]
 if len(selected_movies) > 0:
     user_vector = np.mean(vectors, axis=0)
@@ -48,7 +58,14 @@ if len(selected_movies) > 0:
     recommend_results = []
     for movie_id, score in model.wv.most_similar(user_vector):
         title = movie_id_to_title[movie_id]
-        recommend_results.append(
-            {"movie_id": movie_id, "title": title, "score": score})
+        genre = eval(movie_id_to_genre[movie_id])
+        # ジャンルが選択されている場合は、そのジャンルの映画のみを対象とする
+        if len(selected_genres) > 0:
+            if len(set(genre) & set(selected_genres)) == len(selected_genres):
+                recommend_results.append(
+                    {"movie_id": movie_id, "title": title, "score": score, "genre": genre})
+        else:
+            recommend_results.append(
+                {"movie_id": movie_id, "title": title, "score": score, "genre": genre})
     recommend_results = pd.DataFrame(recommend_results)
     st.write(recommend_results)
